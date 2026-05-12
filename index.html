@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Electrochemistry Calculator</title>
+
+<style>
+body {
+    font-family: Arial;
+    max-width: 600px;
+    margin: auto;
+    padding: 20px;
+    background: #f4f4f4;
+}
+input, select, button {
+    display: block;
+    margin: 10px 0;
+    width: 100%;
+    padding: 8px;
+}
+.result {
+    background: white;
+    padding: 10px;
+    margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Electrochemistry Calculator</h2>
+
+<label>What do you want to calculate?</label>
+<select id="mode">
+    <option value="r">r (radius)</option>
+    <option value="Rp">Rp</option>
+    <option value="kappa">kappa</option>
+    <option value="theta">theta</option>
+</select>
+
+<input id="rp" placeholder="Rp (MΩ)">
+<input id="kappa" placeholder="kappa (S/m)">
+<input id="theta" placeholder="theta (deg)">
+<input id="r" placeholder="r (nm)">
+
+<button onclick="calculate()">Calculate</button>
+
+<div class="result" id="output"></div>
+
+<script>
+function calculate() {
+    const mode = document.getElementById("mode").value;
+    const output = document.getElementById("output");
+
+    let Rp_MOhm = parseFloat(document.getElementById("rp").value);
+    let kappa = parseFloat(document.getElementById("kappa").value);
+    let theta_deg = parseFloat(document.getElementById("theta").value);
+    let r_nm = parseFloat(document.getElementById("r").value);
+
+    let theta = theta_deg * Math.PI / 180;
+    let Rp = Rp_MOhm * 1e6;
+    let r = r_nm * 1e-9;
+
+    try {
+
+        // -----------------------------
+        // Solve for r
+        // -----------------------------
+        if (mode === "r") {
+            let term = (1 / (Math.PI * Math.tan(theta))) + 0.25;
+            r = (1 / (kappa * Rp)) * term;
+            r_nm = r * 1e9;
+
+            output.innerHTML = `r = ${r_nm.toFixed(3)} nm`;
+        }
+
+        // -----------------------------
+        // Solve for Rp
+        // -----------------------------
+        else if (mode === "Rp") {
+            let term = (1 / (Math.PI * Math.tan(theta))) + 0.25;
+            Rp = term / (kappa * r);
+            Rp_MOhm = Rp / 1e6;
+
+            output.innerHTML = `Rp = ${Rp_MOhm.toExponential(3)} MΩ`;
+        }
+
+        // -----------------------------
+        // Solve for kappa
+        // -----------------------------
+        else if (mode === "kappa") {
+            let term = (1 / (Math.PI * Math.tan(theta))) + 0.25;
+            kappa = term / (Rp * r);
+
+            output.innerHTML = `kappa = ${kappa.toExponential(3)} S/m`;
+        }
+
+        // -----------------------------
+        // Solve for theta (numerical)
+        // -----------------------------
+        else if (mode === "theta") {
+
+            function f(theta) {
+                let term = (1 / (Math.PI * Math.tan(theta))) + 0.25;
+                return (1 / (kappa * Rp)) * term - r;
+            }
+
+            // Bisection method
+            let low = 0.01;
+            let high = Math.PI / 2 - 0.01;
+            let mid;
+
+            for (let i = 0; i < 100; i++) {
+                mid = (low + high) / 2;
+                if (f(mid) * f(low) < 0) {
+                    high = mid;
+                } else {
+                    low = mid;
+                }
+            }
+
+            let theta_solution = mid * 180 / Math.PI;
+
+            output.innerHTML = `theta ≈ ${theta_solution.toFixed(3)}°`;
+        }
+
+    } catch (err) {
+        output.innerHTML = "Error in calculation.";
+    }
+}
+</script>
+
+</body>
+</html>
